@@ -70,6 +70,9 @@
         .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: white; border-radius: 50%; transition: .4s; }
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(16px); }
+        .main-card, .coin-box, .order-box, .stat-box, .user-row { animation: riseIn .45s ease both; }
+        .btn:active { transform: scale(.98); }
+        @keyframes riseIn { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
     </style> 
 </head> 
 <body> 
@@ -242,6 +245,7 @@ function renderOrders(orders) {
                     <div class="info-item"><small>Coin</small><b>${o.amt} ${o.coin}</b></div>
                     <div class="info-item"><small>Sender</small><b>${o.sender}</b></div>
                     <div class="info-item"><small>Payout</small><b style="color:var(--success)">${o.payable}৳</b></div>
+                    <div class="info-item"><small>Rate Used</small><b>${o.appliedRate || 0}৳ (${o.appliedRateType || 'user'})</b></div>
                 </div>
                 <div style="display:flex; gap:8px;"> 
                     ${currentTab === 'pending' ? `<button class="btn" style="background:var(--success); color:white; flex:2;" onclick="updOrd('${o.id}','completed','${o.user}',${o.payable})">Accept</button><button class="btn" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); border:1px solid var(--danger); flex:1;" onclick="updOrd('${o.id}','rejected')">Reject</button>` : ''} 
