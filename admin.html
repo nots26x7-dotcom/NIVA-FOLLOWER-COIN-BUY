@@ -3,7 +3,7 @@
 <head> 
     <meta charset="UTF-8"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>Niva Admin - Smart Panel</title> 
+    <title>NivaFollowerCoinBuy - Admin Panel</title> 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script> 
@@ -84,6 +84,10 @@
 </div>
 
 <div class="container" id="admin-panel"> 
+    <div style="display:flex; justify-content:space-between; align-items:center; margin:0 auto 12px; max-width:500px;">
+        <button class="btn" style="background:rgba(255,255,255,0.06); color:white; border:1px solid var(--border); width:auto; padding:10px 14px;" onclick="goBackToUserPanel()">← Back</button>
+        <div style="font-weight:800; color:var(--subtext); font-size:12px;">NivaFollowerCoinBuy Admin Panel</div>
+    </div>
     <div class="stats-row">
         <div class="stat-box">
             <small>PENDING ORDERS</small>
@@ -126,15 +130,20 @@
                     <input type="number" id="c-user-rate" placeholder="User Rate">
                     <input type="number" id="c-admin-rate" placeholder="Admin Rate">
                 </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                    <input type="number" id="c-admin-rate-min" placeholder="Admin Rate From Coin">
+                    <input type="number" id="c-min-submit" placeholder="Min Submit Limit">
+                </div>
                 <button class="btn" style="background:var(--primary); color:white;" onclick="addCoin()">+ Add New Coin</button>
             </div>
             <div id="coin-list"></div>
             <hr style="margin:20px 0; border:0; border-top:1px solid var(--border);">
 
-            <span style="font-weight:800; display:block; margin-bottom:12px; color: #a855f7;">💳 Payments & Links</span>
+            <span style="font-weight:800; display:block; margin-bottom:12px; color: #a855f7;">🌐 Branding, Help Line & Channel</span>
+            <input type="text" id="site-name" placeholder="Website Name" style="margin-bottom:10px;">
             <input type="text" id="link-channel" placeholder="Channel Link" style="margin-bottom:10px;">
-            <input type="text" id="link-help" placeholder="Support Link" style="margin-bottom:10px;">
-            <button class="btn" style="background:var(--primary); color:white; margin-bottom:15px;" onclick="saveLinks()">Update Links</button>
+            <input type="text" id="link-help" placeholder="Help Line Link" style="margin-bottom:10px;">
+            <button class="btn" style="background:var(--primary); color:white; margin-bottom:15px;" onclick="saveBrandingAndLinks()">Update Branding & Links</button>
             
             <div style="display:flex; gap:8px;">
                 <input type="text" id="new-pay-method" placeholder="Method Name">
@@ -147,14 +156,14 @@
 
 <script> 
 const firebaseConfig = {
-    apiKey: "AIzaSyDKHipvVRpal_Or_P_R-2_vX0e2TLPVYG4",
-    authDomain: "coin-market-a97d2.firebaseapp.com",
-    databaseURL: "https://coin-market-a97d2-default-rtdb.firebaseio.com",
-    projectId: "coin-market-a97d2",
-    storageBucket: "coin-market-a97d2.firebasestorage.app",
-    messagingSenderId: "642101451228",
-    appId: "1:642101451228:web:f06f1400773bb828401719",
-    measurementId: "G-CWG6899YZR"
+apiKey: "AIzaSyAEuR1bXDA0E0ZbjhY8lz0e02K082BlHp8",
+  authDomain: "niva-follower-coin-buy.firebaseapp.com",
+  databaseURL: "https://niva-follower-coin-buy-default-rtdb.firebaseio.com",
+  projectId: "niva-follower-coin-buy",
+  storageBucket: "niva-follower-coin-buy.firebasestorage.app",
+  messagingSenderId: "210909664700",
+  appId: "1:210909664700:web:2059742033ea39a3a947b9",
+  measurementId: "G-N7BWK1LYZD"
 }; 
 firebase.initializeApp(firebaseConfig); 
 const db = firebase.database(); 
@@ -256,10 +265,14 @@ function renderCoinList() {
                     <span style="font-weight:800; color:var(--primary); font-size:15px;">💎 ${c.key}</span>
                     <label class="switch"><input type="checkbox" ${v.status?'checked':''} onchange="db.ref('marketConfig/${c.key}').update({status:this.checked})"><span class="slider"></span></label>
                 </div>
-                <input type="text" value="${v.transferId}" onchange="db.ref('marketConfig/${c.key}').update({transferId: this.value})">
+                <input type="text" value="${v.transferId || ''}" onchange="db.ref('marketConfig/${c.key}').update({transferId: this.value})">
                 <div class="rate-grid">
-                    <div class="rate-box"><small style="color:var(--subtext)">USER RATE</small><input type="number" value="${v.userRate}" onchange="db.ref('marketConfig/${c.key}').update({userRate: parseFloat(this.value)})"></div>
-                    <div class="rate-box"><small style="color:var(--subtext)">ADMIN RATE</small><input type="number" value="${v.adminRate}" onchange="db.ref('marketConfig/${c.key}').update({adminRate: parseFloat(this.value)})"></div>
+                    <div class="rate-box"><small style="color:var(--subtext)">USER RATE</small><input type="number" value="${v.userRate || 0}" onchange="db.ref('marketConfig/${c.key}').update({userRate: parseFloat(this.value) || 0})"></div>
+                    <div class="rate-box"><small style="color:var(--subtext)">ADMIN RATE</small><input type="number" value="${v.adminRate || 0}" onchange="db.ref('marketConfig/${c.key}').update({adminRate: parseFloat(this.value) || 0})"></div>
+                </div>
+                <div class="rate-grid">
+                    <div class="rate-box"><small style="color:var(--subtext)">ADMIN RATE FROM</small><input type="number" value="${v.adminRateMinCoins || v.minSubmitLimit || 0}" onchange="db.ref('marketConfig/${c.key}').update({adminRateMinCoins: parseFloat(this.value) || 0})"></div>
+                    <div class="rate-box"><small style="color:var(--subtext)">MIN SUBMIT LIMIT</small><input type="number" value="${v.minSubmitLimit || 0}" onchange="db.ref('marketConfig/${c.key}').update({minSubmitLimit: parseFloat(this.value) || 0})"></div>
                 </div>
                 <button class="btn" style="margin-top:10px; padding:5px; font-size:10px; background:rgba(239, 68, 68, 0.1); color:var(--danger);" onclick="db.ref('marketConfig/${c.key}').remove()">Remove</button>
             </div>`; 
@@ -269,12 +282,54 @@ function renderCoinList() {
 }
 
 function addCoin() { 
-    const n = document.getElementById('c-name').value, tid = document.getElementById('c-tid').value, ur = document.getElementById('c-user-rate').value, ar = document.getElementById('c-admin-rate').value;
-    if(n && tid && ur && ar) { db.ref('marketConfig/'+n).set({ transferId: tid, userRate: parseFloat(ur), adminRate: parseFloat(ar), status: true }).then(() => { document.getElementById('c-name').value = ""; document.getElementById('c-tid').value = ""; document.getElementById('c-user-rate').value = ""; document.getElementById('c-admin-rate').value = ""; }); } 
+    const n = document.getElementById('c-name').value.trim();
+    const tid = document.getElementById('c-tid').value.trim();
+    const ur = document.getElementById('c-user-rate').value;
+    const ar = document.getElementById('c-admin-rate').value;
+    const arm = document.getElementById('c-admin-rate-min').value;
+    const msl = document.getElementById('c-min-submit').value;
+
+    if(n && tid && ur && ar && arm && msl) {
+        db.ref('marketConfig/'+n).set({
+            transferId: tid,
+            userRate: parseFloat(ur) || 0,
+            adminRate: parseFloat(ar) || 0,
+            adminRateMinCoins: parseFloat(arm) || 0,
+            minSubmitLimit: parseFloat(msl) || 0,
+            status: true
+        }).then(() => {
+            document.getElementById('c-name').value = '';
+            document.getElementById('c-tid').value = '';
+            document.getElementById('c-user-rate').value = '';
+            document.getElementById('c-admin-rate').value = '';
+            document.getElementById('c-admin-rate-min').value = '';
+            document.getElementById('c-min-submit').value = '';
+        });
+    } else {
+        alert('সব field fill korun');
+    }
 }
 
-function saveLinks() { db.ref('settings/links').set({ channel: document.getElementById('link-channel').value, help: document.getElementById('link-help').value }).then(() => alert("Saved!")); }
-db.ref('settings/links').on('value', snap => { if(snap.val()) { document.getElementById('link-channel').value = snap.val().channel || ""; document.getElementById('link-help').value = snap.val().help || ""; } });
+function saveBrandingAndLinks() {
+    const siteName = (document.getElementById('site-name').value || 'NivaFollowerCoinBuy').trim() || 'NivaFollowerCoinBuy';
+    const channel = document.getElementById('link-channel').value.trim();
+    const help = document.getElementById('link-help').value.trim();
+
+    Promise.all([
+        db.ref('settings/branding').set({ siteName }),
+        db.ref('settings/links').set({ channel, help })
+    ]).then(() => alert('Saved!'));
+}
+db.ref('settings/branding').on('value', snap => {
+    const branding = snap.val() || {};
+    document.getElementById('site-name').value = branding.siteName || 'NivaFollowerCoinBuy';
+    document.title = (branding.siteName || 'NivaFollowerCoinBuy') + ' - Admin Panel';
+});
+db.ref('settings/links').on('value', snap => {
+    const data = snap.val() || {};
+    document.getElementById('link-channel').value = data.channel || '';
+    document.getElementById('link-help').value = data.help || '';
+});
 
 function addPayment() { const name = document.getElementById('new-pay-method').value; if(name) db.ref('paymentMethods/'+name).set({status: true}); }
 function renderPaymentList() { db.ref('paymentMethods').on('value', snap => { let html = ""; snap.forEach(p => { html += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); align-items:center;"><span style="color:white">${p.key}</span><div style="display:flex; gap:8px;"><label class="switch"><input type="checkbox" ${p.val().status?'checked':''} onchange="db.ref('paymentMethods/${p.key}').update({status:this.checked})"><span class="slider"></span></label><button style="border:none; color:var(--danger); background:none; font-weight:800;" onclick="db.ref('paymentMethods/${p.key}').remove()">Del</button></div></div>`; }); document.getElementById('payment-list').innerHTML = html; }); }
