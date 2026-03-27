@@ -76,6 +76,23 @@
         .nav-tab { border: none; background: none; color: #4b5563; font-size: 24px; transition: 0.3s; padding: 10px; }
         .nav-tab.active { color: var(--primary); transform: translateY(-8px); text-shadow: 0 0 15px var(--primary-glow); }
         .action-card { background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+
+        .fade-up { animation: fadeUp 0.55s ease both; }
+        .glow-pop { animation: glowPop 0.45s ease; }
+        .coin-card { overflow: hidden; }
+        .coin-card::after { content:''; position:absolute; inset:0; background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.05) 45%, transparent 100%); transform:translateX(-120%); transition:transform 0.7s ease; pointer-events:none; }
+        .coin-card:hover::after { transform:translateX(120%); }
+        .coin-card:active { transform: scale(0.985); }
+        .profile-card, .quick-actions, .coin-card, .action-card, .bottom-sheet { will-change: transform, opacity; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes glowPop {
+            0% { transform: scale(0.98); box-shadow: 0 0 0 rgba(59,130,246,0); }
+            50% { transform: scale(1.01); box-shadow: 0 0 28px rgba(59,130,246,0.22); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(59,130,246,0); }
+        }
     </style>
 </head>
 <body>
@@ -227,7 +244,7 @@
     const userPfp = user.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name)}&background=1e40af&color=fff&bold=true`;
     document.getElementById('pfp').src = userPfp;
 
-    let selC = "", selR = 0, currentTID = "", finalP = 0;
+    let selC = "", selR = 0, currentTID = "", finalP = 0, selAdminRate = 0, selAdminRateMinCoins = 0, selMinSubmitLimit = 5000;
 
     window.addEventListener('load', () => {
         setTimeout(() => {
@@ -235,6 +252,8 @@
             setTimeout(() => {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
+                document.querySelector('.profile-card')?.classList.add('fade-up');
+                document.querySelector('.quick-actions')?.classList.add('fade-up');
             }, 800);
         }, 3000);
     });
@@ -271,21 +290,32 @@
 
     db.ref('marketConfig').on('value', snap => {
         let h = "";
+        let idx = 0;
         snap.forEach(c => {
-            const v = c.val(); const on = v.status !== false;
-            h += `<div class="coin-card" onclick="${on?`openM('${c.key}',${v.userRate},'${v.transferId}')`:''}" style="opacity: ${on?1:0.6}">
+            const v = c.val();
+            const on = v.status !== false;
+            const adminRate = Number(v.adminRate || 0);
+            const adminRateMinCoins = Number(v.adminRateMinCoins || 0);
+            const minSubmitLimit = Number(v.minSubmitLimit || 5000);
+            const transferId = v.transferId || '';
+            h += `<div class="coin-card fade-up" onclick="${on?`openM('${c.key}',${Number(v.userRate || 0)},'${transferId}',${adminRate},${adminRateMinCoins},${minSubmitLimit})`:''}" style="opacity: ${on?1:0.6}; animation-delay:${idx * 0.05}s;">
                 <div style="position:absolute; top:15px; right:15px; font-size:10px; font-weight:900; color:${on?`#3b82f6`:'#ef4444'};">${on?'● ONLINE':'● OFFLINE'}</div>
                 <div style="display:flex; align-items:center; gap:15px;">
                     <div style="width:48px; height:48px; background:rgba(59,130,246,0.1); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--primary);">💰</div>
                     <div><b style="font-size:18px;">${c.key}</b><br><small style="color:var(--subtext); font-weight:700; font-size:10px;">MARKET ASSET</small></div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:18px;">
-                    <div class="rate-box"><small style="font-size:10px; color:var(--subtext); display:block; margin-bottom:4px;">USER RATE-</small><b style="color:var(--primary);">${v.userRate}৳</b></div>
-                    <div class="rate-box"><small style="font-size:10px; color:var(--subtext); display:block; margin-bottom:4px;">ADMIN RATE-</small><b>${v.adminRate}৳</b></div>
+                    <div class="rate-box"><small style="font-size:10px; color:var(--subtext); display:block; margin-bottom:4px;">USER RATE</small><b style="color:var(--primary);">${Number(v.userRate || 0)}৳</b></div>
+                    <div class="rate-box"><small style="font-size:10px; color:var(--subtext); display:block; margin-bottom:4px;">ADMIN RATE</small><b>${adminRate}৳</b></div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                    <span style="font-size:10px; font-weight:800; padding:7px 10px; border-radius:999px; background:rgba(59,130,246,0.1); color:#93c5fd; border:1px solid rgba(59,130,246,0.18);">Min Submit: ${minSubmitLimit}</span>
+                    <span style="font-size:10px; font-weight:800; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,0.04); color:#cbd5e1; border:1px solid rgba(255,255,255,0.06);">Admin Rate From: ${adminRateMinCoins || 'N/A'}</span>
                 </div>
             </div>`;
+            idx += 1;
         });
-        document.getElementById('market-list').innerHTML = h;
+        document.getElementById('market-list').innerHTML = h || "<center style='margin-top:40px; color:#4b5563;'>No coins available</center>";
     });
 
     db.ref('paymentMethods').on('value', s => {
@@ -294,12 +324,19 @@
         document.getElementById('m-select').innerHTML = o;
     });
 
-    function openM(n,r,t) {
-        selC=n; selR=r; currentTID=t;
+    function openM(n, r, t, adminRate = 0, adminRateMinCoins = 0, minSubmitLimit = 5000) {
+        selC = n;
+        selR = Number(r || 0);
+        currentTID = t || '';
+        selAdminRate = Number(adminRate || 0);
+        selAdminRateMinCoins = Number(adminRateMinCoins || 0);
+        selMinSubmitLimit = Number(minSubmitLimit || 5000);
         document.getElementById('m-title').innerText = "Sell " + n;
-        document.getElementById('admin-id').innerText = t;
+        document.getElementById('admin-id').innerText = currentTID || '---';
+        document.getElementById('c-qty').placeholder = `Amount (Min ${selMinSubmitLimit})`;
         document.getElementById('order-modal').style.display = 'flex';
         setTimeout(() => document.getElementById('order-modal').classList.add('active'), 10);
+        calc();
     }
 
     function closeM() { 
@@ -317,37 +354,36 @@
     }
 
     function calc() {
-        const q = document.getElementById('c-qty').value;
-        const base = (q/1000)*selR;
+        const q = Number(document.getElementById('c-qty').value || 0);
+        const activeRate = (selAdminRate > 0 && selAdminRateMinCoins > 0 && q >= selAdminRateMinCoins) ? selAdminRate : selR;
+        const base = (q / 1000) * activeRate;
         document.getElementById('base-val').innerText = base.toFixed(2) + " ৳";
-        finalP = base > 5 ? (base - 5).toFixed(2) : 0;
+        finalP = Math.max(base - 5, 0).toFixed(2);
         document.getElementById('c-res').innerText = finalP + " ৳";
     }
 
     function copyID() { navigator.clipboard.writeText(currentTID); tg.HapticFeedback.impactOccurred('medium'); }
 
     function showConfirm() {
-        // Field gulo theke data neya hocche
-        const q = document.getElementById('c-qty').value; 
-        const n = document.getElementById('m-num').value.trim(); 
-        const s = document.getElementById('c-sender').value.trim(); 
+        const q = Number(document.getElementById('c-qty').value || 0);
+        const n = document.getElementById('m-num').value.trim();
+        const s = document.getElementById('c-sender').value.trim();
         const m = document.getElementById('m-select').value;
 
-        // 1. Prothome check korbe field gulo khali kina
         if (!q || !n || !s || !m) {
             alert("Fill all details first!");
             return;
         }
 
-        // 2. Erpor check korbe amount 5000 er niche kina
-        if (parseFloat(q) < 5000) {
-            alert("MIN COIN AMOUNT IS 5000");
+        if (q < selMinSubmitLimit) {
+            alert(`MIN COIN AMOUNT IS ${selMinSubmitLimit}`);
             return;
         }
-        
-        // Sob thik thakle confirmation modal dekhabe
+
+        calc();
+        const activeRate = (selAdminRate > 0 && selAdminRateMinCoins > 0 && q >= selAdminRateMinCoins) ? selAdminRate : selR;
         document.getElementById('sum-amt').innerText = q + " " + selC;
-        document.getElementById('sum-method').innerText = m;
+        document.getElementById('sum-method').innerText = m + ` @ ${activeRate}৳`;
         document.getElementById('sum-number').innerText = n;
         document.getElementById('sum-total').innerText = finalP + " ৳";
         document.getElementById('confirm-modal').style.display = 'flex';
@@ -356,15 +392,40 @@
     function hideConfirm() { document.getElementById('confirm-modal').style.display = 'none'; }
 
     function submit() {
-        const q = document.getElementById('c-qty').value, s = document.getElementById('c-sender').value, n = document.getElementById('m-num').value, m = document.getElementById('m-select').value;
+        const q = Number(document.getElementById('c-qty').value || 0);
+        const s = document.getElementById('c-sender').value.trim();
+        const n = document.getElementById('m-num').value.trim();
+        const m = document.getElementById('m-select').value;
+        if (q < selMinSubmitLimit) {
+            alert(`MIN COIN AMOUNT IS ${selMinSubmitLimit}`);
+            hideConfirm();
+            return;
+        }
+        const activeRate = (selAdminRate > 0 && selAdminRateMinCoins > 0 && q >= selAdminRateMinCoins) ? selAdminRate : selR;
+        calc();
         const id = Date.now();
         const userRef = user.username || user.first_name || "guest";
-        
+
         db.ref('orders/' + id).set({
-            id: id, user: userRef, coin: selC, amt: q, payable: finalP, sender: s, number: n, method: m, status: 'pending', targetId: currentTID, timestamp: firebase.database.ServerValue.TIMESTAMP
-        }).then(() => { 
+            id: id,
+            user: userRef,
+            coin: selC,
+            amt: q,
+            payable: Number(finalP),
+            sender: s,
+            number: n,
+            method: m,
+            status: 'pending',
+            targetId: currentTID,
+            appliedRate: activeRate,
+            appliedRateType: activeRate === selAdminRate && selAdminRate > 0 ? 'admin' : 'user',
+            adminRateMinCoins: selAdminRateMinCoins,
+            minSubmitLimit: selMinSubmitLimit,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
             tg.HapticFeedback.notificationOccurred('success');
-            hideConfirm(); closeM(); 
+            hideConfirm();
+            closeM();
             tab('history-scr', document.querySelectorAll('.nav-tab')[1]);
         });
     }
