@@ -121,12 +121,12 @@
     </div>
 
     <div class="quick-actions">
-        <a href="https://t.me/your_helpline" class="action-btn" id="help-link">
+        <button type="button" class="action-btn" id="help-link" onclick="openSafeLink(helpLinkValue)" style="cursor:pointer;">
             <div class="icon-circle">🎧</div> Help Line
-        </a>
-        <a href="https://t.me/your_channel" class="action-btn" id="channel-link">
+        </button>
+        <button type="button" class="action-btn" id="channel-link" onclick="openSafeLink(channelLinkValue)" style="cursor:pointer;">
             <div class="icon-circle">📢</div> Channel
-        </a>
+        </button>
         <button type="button" class="action-btn" id="admin-access-btn" onclick="openAdminPanel()" style="display:none; width:100%; cursor:pointer; background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
             <div class="icon-circle" style="background:rgba(255,255,255,0.12); color:#fff;">🛡️</div> Access Admin Panel
         </button>
@@ -245,6 +245,8 @@
     document.getElementById('pfp').src = userPfp;
 
     let selC = "", selR = 0, currentTID = "", finalP = 0, selAdminRate = 0, selAdminRateMinCoins = 0, selMinSubmitLimit = 5000;
+    let channelLinkValue = 'https://t.me/your_channel';
+    let helpLinkValue = 'https://t.me/your_helpline';
 
     window.addEventListener('load', () => {
         setTimeout(() => {
@@ -272,10 +274,45 @@
         window.location.href = 'admin.html';
     }
 
+    function normalizeLink(url) {
+        const value = (url || '').trim();
+        if (!value) return '';
+        if (/^https?:\/\//i.test(value) || /^tg:\/\//i.test(value)) return value;
+        if (/^(t\.me|telegram\.me)\//i.test(value)) return 'https://' + value;
+        if (/^@/.test(value)) return 'https://t.me/' + value.slice(1);
+        return 'https://' + value;
+    }
+
+    function openSafeLink(url) {
+        const safeUrl = normalizeLink(url);
+        if (!safeUrl) {
+            alert('Link not set by admin yet.');
+            return;
+        }
+
+        try {
+            if (/^(https?:\/\/)?(t\.me|telegram\.me)\//i.test(safeUrl)) {
+                if (tg && typeof tg.openTelegramLink === 'function') {
+                    tg.openTelegramLink(safeUrl);
+                    return;
+                }
+            }
+
+            if (tg && typeof tg.openLink === 'function') {
+                tg.openLink(safeUrl, { try_instant_view: false });
+                return;
+            }
+        } catch (e) {
+            console.error('Telegram openLink failed:', e);
+        }
+
+        window.open(safeUrl, '_blank', 'noopener,noreferrer');
+    }
+
     db.ref('settings/links').on('value', snap => {
         const links = snap.val() || {};
-        document.getElementById('channel-link').href = links.channel || 'https://t.me/your_channel';
-        document.getElementById('help-link').href = links.help || 'https://t.me/your_helpline';
+        channelLinkValue = normalizeLink(links.channel || 'https://t.me/your_channel');
+        helpLinkValue = normalizeLink(links.help || 'https://t.me/your_helpline');
     });
 
     db.ref('settings/branding').on('value', snap => {
