@@ -314,15 +314,28 @@ function addCoin() {
     }
 }
 
+function normalizeLink(url) {
+    const value = (url || '').trim();
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value) || /^tg:\/\//i.test(value)) return value;
+    if (/^(t\.me|telegram\.me)\//i.test(value)) return 'https://' + value;
+    if (/^@/.test(value)) return 'https://t.me/' + value.slice(1);
+    return 'https://' + value;
+}
+
 function saveBrandingAndLinks() {
     const siteName = (document.getElementById('site-name').value || 'NivaFollowerCoinBuy').trim() || 'NivaFollowerCoinBuy';
-    const channel = document.getElementById('link-channel').value.trim();
-    const help = document.getElementById('link-help').value.trim();
+    const channel = normalizeLink(document.getElementById('link-channel').value);
+    const help = normalizeLink(document.getElementById('link-help').value);
 
     Promise.all([
         db.ref('settings/branding').set({ siteName }),
         db.ref('settings/links').set({ channel, help })
-    ]).then(() => alert('Saved!'));
+    ]).then(() => {
+        document.getElementById('link-channel').value = channel;
+        document.getElementById('link-help').value = help;
+        alert('Saved!');
+    });
 }
 db.ref('settings/branding').on('value', snap => {
     const branding = snap.val() || {};
